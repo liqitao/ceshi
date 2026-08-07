@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="zh-CN" data-immersive-translate-page-theme="light"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>版本迭代管理系统2</title>
   <style>
     :root {
@@ -217,7 +216,7 @@
       <div class="top-actions">
         <button class="btn-ghost" onclick="addTask()">新增卡片</button>
         <button class="btn-ghost" onclick="resetDemo()">恢复默认</button>
-        <button class="btn-success" id="githubSaveBtn" onclick="saveToGitHub()">保存到 GitHub</button>
+        <button class="btn-success" id="githubSaveBtn" onclick="saveToGitHub()" disabled="">保存到 GitHub</button>
         <button class="btn-ghost" onclick="clearGitHubToken()">清除 Token</button>
         <button class="btn-primary" onclick="exportHtml()">导出 HTML</button>
       </div>
@@ -236,7 +235,7 @@
       <main class="main">
         <div class="page-header">
           <div>
-            <h1 class="page-title editable" contenteditable="true">4.1.0 版本迭代</h1>
+            <h1 class="page-title editable" contenteditable="true">4.1.0 版本迭代-00001</h1>
             <p class="page-desc editable" contenteditable="true">这是一个可以直接点击文字修改的原型页面，修改会先自动保存在浏览器，完成后可一键同步到 GitHub。</p>
           </div>
           <button class="btn-primary" onclick="addTask()">+ 新增需求</button>
@@ -484,5 +483,6 @@
 
     document.addEventListener('DOMContentLoaded', loadState);
   </script>
-</body>
-</html>
+
+
+<div id="autoglm-main-content" class="autoglm-main-content" data-version="0.1.6"></div></body><div id="touchpoint-host" data-touchpoint-shadow-root="true" style="position: fixed; top: 0px; left: 0px; width: 0px; height: 0px; z-index: 2147483647; pointer-events: none;"></div><div id="immersive-translate-popup" style="all: initial"></div></html>
