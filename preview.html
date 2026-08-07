@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>可编辑原型 Demo</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --border: #e5e7eb;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --shadow: 0 10px 30px rgba(15, 23, 42, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .app { min-height: 100vh; }
+    .topbar {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: #111827;
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .brand {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+    .top-actions { display: flex; gap: 10px; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: .2s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-ghost { background: rgba(255,255,255,.12); color: white; }
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: calc(100vh - 64px);
+    }
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 18px 12px;
+    }
+    .menu-title {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 8px 12px;
+    }
+    .menu-item {
+      padding: 11px 12px;
+      margin: 4px 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .menu-item.active {
+      background: #eff6ff;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .main { padding: 28px; }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .page-title {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0 0 8px;
+      outline: none;
+    }
+    .page-desc {
+      color: var(--muted);
+      margin: 0;
+      outline: none;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .stat-card, .panel, .task {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+    .stat-card { padding: 18px; }
+    .stat-label { color: var(--muted); font-size: 13px; }
+    .stat-value { font-size: 28px; font-weight: 800; margin-top: 8px; }
+    .panel { padding: 18px; }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      outline: none;
+    }
+    .tasks { display: grid; gap: 12px; }
+    .task {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      box-shadow: none;
+    }
+    .task-title {
+      font-weight: 600;
+      outline: none;
+      min-width: 0;
+    }
+    .task-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 5px;
+      outline: none;
+    }
+    .tag {
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #eff6ff;
+      color: var(--primary);
+      white-space: nowrap;
+      outline: none;
+    }
+    .delete-btn {
+      background: #fef2f2;
+      color: var(--danger);
+      padding: 7px 10px;
+    }
+    .hint {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .editable[contenteditable="true"] {
+      border-radius: 6px;
+    }
+    .editable[contenteditable="true"]:hover {
+      background: #fff7ed;
+      box-shadow: 0 0 0 2px #fed7aa;
+    }
+    .editable[contenteditable="true"]:focus {
+      background: #fff;
+      box-shadow: 0 0 0 2px #60a5fa;
+    }
+    .editing-badge {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #111827;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: var(--shadow);
+      z-index: 30;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .main { padding: 18px; }
+    }
+    @media (max-width: 560px) {
+      .stats { grid-template-columns: 1fr; }
+      .task { grid-template-columns: 1fr; }
+      .topbar { padding: 0 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand editable" contenteditable="true">版本迭代管理系统 · 原型</div>
+      <div class="top-actions">
+        <button class="btn-ghost" onclick="addTask()">新增卡片</button>
+        <button class="btn-ghost" onclick="resetDemo()">恢复默认</button>
+        <button class="btn-primary" onclick="exportHtml()">导出 HTML</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="menu-title">工作台</div>
+        <div class="menu-item active editable" contenteditable="true">版本总览</div>
+        <div class="menu-item editable" contenteditable="true">需求管理</div>
+        <div class="menu-item editable" contenteditable="true">开发任务</div>
+        <div class="menu-item editable" contenteditable="true">测试任务</div>
+        <div class="menu-item editable" contenteditable="true">BUG 管理</div>
+      </aside>
+
+      <main class="main">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title editable" contenteditable="true">4.1.0 版本迭代</h1>
+            <p class="page-desc editable" contenteditable="true">这是一个可以直接点击文字修改的原型页面，改完会自动保存在当前浏览器。</p>
+          </div>
+          <button class="btn-primary" onclick="addTask()">+ 新增需求</button>
+        </div>
+
+        <section class="stats">
+          <div class="stat-card">
+            <div class="stat-label editable" contenteditable="true">需求总数</div>
+            <div class="stat-value editable" contenteditable="true">12</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label editable" contenteditable="true">开发中</div>
+            <div class="stat-value editable" contenteditable="true">5</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label editable" contenteditable="true">测试中</div>
+            <div class="stat-value editable" contenteditable="true">3</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label editable" contenteditable="true">已完成</div>
+            <div class="stat-value editable" contenteditable="true">4</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title editable" contenteditable="true">本期需求</div>
+            <button onclick="addTask()">新增一条</button>
+          </div>
+
+          <div class="tasks" id="taskList">
+            <div class="task">
+              <div>
+                <div class="task-title editable" contenteditable="true">积分规则支持批量配置</div>
+                <div class="task-meta editable" contenteditable="true">负责人：张三 · 截止：8月15日</div>
+              </div>
+              <div class="tag editable" contenteditable="true">开发中</div>
+              <button class="delete-btn" onclick="deleteTask(this)">删除</button>
+            </div>
+
+            <div class="task">
+              <div>
+                <div class="task-title editable" contenteditable="true">新增权益发放明细查询</div>
+                <div class="task-meta editable" contenteditable="true">负责人：李四 · 截止：8月18日</div>
+              </div>
+              <div class="tag editable" contenteditable="true">待测试</div>
+              <button class="delete-btn" onclick="deleteTask(this)">删除</button>
+            </div>
+
+            <div class="task">
+              <div>
+                <div class="task-title editable" contenteditable="true">团购活动异常流程优化</div>
+                <div class="task-meta editable" contenteditable="true">负责人：王五 · 截止：8月20日</div>
+              </div>
+              <div class="tag editable" contenteditable="true">待评审</div>
+              <button class="delete-btn" onclick="deleteTask(this)">删除</button>
+            </div>
+          </div>
+
+          <div class="hint">
+            使用方法：直接点击页面中的文字即可修改；点击“新增卡片”增加内容；点击“删除”移除卡片。
+            所有修改会自动保存在当前浏览器；点击“导出 HTML”可以下载当前修改后的版本。
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="editing-badge">✏️ 原型编辑模式 · 自动保存</div>
+
+  <script>
+    const STORAGE_KEY = 'editable-prototype-demo-v1';
+    const defaultHtml = document.getElementById('app').innerHTML;
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, document.getElementById('app').innerHTML);
+    }
+
+    function loadState() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        document.getElementById('app').innerHTML = saved;
+      }
+      bindAutoSave();
+    }
+
+    function bindAutoSave() {
+      document.querySelectorAll('.editable').forEach(el => {
+        el.addEventListener('input', saveState);
+        el.addEventListener('blur', saveState);
+      });
+    }
+
+    function addTask() {
+      const list = document.getElementById('taskList');
+      const item = document.createElement('div');
+      item.className = 'task';
+      item.innerHTML = `
+        <div>
+          <div class="task-title editable" contenteditable="true">新需求标题，点击修改</div>
+          <div class="task-meta editable" contenteditable="true">负责人：待定 · 截止：待定</div>
+        </div>
+        <div class="tag editable" contenteditable="true">待评审</div>
+        <button class="delete-btn" onclick="deleteTask(this)">删除</button>
+      `;
+      list.appendChild(item);
+      bindAutoSave();
+      saveState();
+    }
+
+    function deleteTask(btn) {
+      btn.closest('.task').remove();
+      saveState();
+    }
+
+    function resetDemo() {
+      if (!confirm('确定恢复默认内容吗？当前浏览器里的修改会被清空。')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      document.getElementById('app').innerHTML = defaultHtml;
+      bindAutoSave();
+    }
+
+    function exportHtml() {
+      saveState();
+      const clone = document.documentElement.cloneNode(true);
+      const exported = '<!DOCTYPE html>\\n' + clone.outerHTML;
+      const blob = new Blob([exported], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'editable-prototype-latest.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener('DOMContentLoaded', loadState);
+  </script>
+</body>
+</html>
