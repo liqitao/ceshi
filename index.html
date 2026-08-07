@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-immersive-translate-page-theme="light"><head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>版本迭代管理系统2</title>
   <style>
     :root {
@@ -216,7 +217,7 @@
       <div class="top-actions">
         <button class="btn-ghost" onclick="addTask()">新增卡片</button>
         <button class="btn-ghost" onclick="resetDemo()">恢复默认</button>
-        <button class="btn-success" id="githubSaveBtn" onclick="saveToGitHub()" disabled="">保存到 GitHub</button>
+        <button class="btn-success" id="githubSaveBtn" onclick="saveToGitHub()">保存到 GitHub</button>
         <button class="btn-ghost" onclick="clearGitHubToken()">清除 Token</button>
         <button class="btn-primary" onclick="exportHtml()">导出 HTML</button>
       </div>
@@ -321,7 +322,13 @@
       el.textContent = message;
     }
 
+    function ensurePersistentControls() {
+      const btn = document.getElementById('githubSaveBtn');
+      if (btn) btn.disabled = false;
+    }
+
     function saveState() {
+      ensurePersistentControls();
       localStorage.setItem(STORAGE_KEY, document.getElementById('app').innerHTML);
       setGitHubStatus('✏️ 有未同步修改 · 已保存到当前浏览器', 'warning');
     }
@@ -330,8 +337,10 @@
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         document.getElementById('app').innerHTML = saved;
+        ensurePersistentControls();
         setGitHubStatus('✏️ 已恢复本地未同步修改', 'warning');
       } else {
+        ensurePersistentControls();
         setGitHubStatus('✓ 已加载 GitHub 最新版本', 'success');
       }
       bindAutoSave();
@@ -370,6 +379,7 @@
       if (!confirm('确定恢复 GitHub 当前版本的默认内容吗？当前浏览器里的未同步修改会被清空。')) return;
       localStorage.removeItem(STORAGE_KEY);
       document.getElementById('app').innerHTML = defaultHtml;
+      ensurePersistentControls();
       bindAutoSave();
       setGitHubStatus('✓ 已恢复 GitHub 当前版本', 'success');
     }
@@ -401,8 +411,18 @@
       return btoa(binary);
     }
 
+    function sanitizeClone(clone) {
+      clone.removeAttribute('data-immersive-translate-page-theme');
+      const saveBtn = clone.querySelector('#githubSaveBtn');
+      if (saveBtn) saveBtn.removeAttribute('disabled');
+      ['#autoglm-main-content', '#touchpoint-host', '#immersive-translate-popup'].forEach(selector => {
+        clone.querySelectorAll(selector).forEach(el => el.remove());
+      });
+    }
+
     function buildCurrentHtml() {
       const clone = document.documentElement.cloneNode(true);
+      sanitizeClone(clone);
       const badge = clone.querySelector('#githubStatus');
       if (badge) {
         badge.className = 'editing-badge';
@@ -469,6 +489,7 @@
     function exportHtml() {
       saveState();
       const clone = document.documentElement.cloneNode(true);
+      sanitizeClone(clone);
       const exported = '<!DOCTYPE html>\n' + clone.outerHTML;
       const blob = new Blob([exported], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -483,6 +504,5 @@
 
     document.addEventListener('DOMContentLoaded', loadState);
   </script>
-
-
-<div id="autoglm-main-content" class="autoglm-main-content" data-version="0.1.6"></div></body><div id="touchpoint-host" data-touchpoint-shadow-root="true" style="position: fixed; top: 0px; left: 0px; width: 0px; height: 0px; z-index: 2147483647; pointer-events: none;"></div><div id="immersive-translate-popup" style="all: initial"></div></html>
+</body>
+</html>
