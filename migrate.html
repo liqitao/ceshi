@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>原型缓存升级</title>
+  <style>
+    body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#f4f7fb;color:#1f2937;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.box{background:#fff;padding:32px 40px;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.08);text-align:center}.ok{font-size:22px;font-weight:700;margin-bottom:10px}.sub{color:#6b7280}
+  </style>
+</head>
+<body>
+  <div class="box"><div class="ok">正在升级原型编辑器…</div><div class="sub">会保留你之前在浏览器里修改的内容</div></div>
+  <script>
+    const key = 'editable-prototype-demo-v1';
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(saved, 'text/html');
+      const actions = doc.querySelector('.top-actions');
+      if (actions && !doc.querySelector('#githubSaveBtn')) {
+        const exportBtn = Array.from(actions.querySelectorAll('button')).find(btn => (btn.getAttribute('onclick') || '').includes('exportHtml'));
+        const saveBtn = doc.createElement('button');
+        saveBtn.className = 'btn-success';
+        saveBtn.id = 'githubSaveBtn';
+        saveBtn.setAttribute('onclick', 'saveToGitHub()');
+        saveBtn.textContent = '保存到 GitHub';
+        const clearBtn = doc.createElement('button');
+        clearBtn.className = 'btn-ghost';
+        clearBtn.setAttribute('onclick', 'clearGitHubToken()');
+        clearBtn.textContent = '清除 Token';
+        if (exportBtn) {
+          actions.insertBefore(saveBtn, exportBtn);
+          actions.insertBefore(clearBtn, exportBtn);
+        } else {
+          actions.appendChild(saveBtn);
+          actions.appendChild(clearBtn);
+        }
+      }
+      const brand = doc.querySelector('.brand');
+      if (brand && brand.textContent.trim() === '版本迭代管理系统 · 原型') {
+        brand.textContent = '版本迭代管理系统2 · 原型';
+      }
+      localStorage.setItem(key, doc.body.innerHTML);
+    }
+    setTimeout(() => location.replace('./?cache_upgraded=' + Date.now()), 700);
+  </script>
+</body>
+</html>
