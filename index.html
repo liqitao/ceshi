@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>版本迭代管理系统2</title>
+  <title>版本迭代管理系统4</title>
   <style>
     :root {
       --bg: #f4f7fb;
@@ -212,7 +212,7 @@
 <body>
   <div class="app" id="app">
     <header class="topbar">
-      <div class="brand editable" contenteditable="true">版本迭代管理系统2 · 原型</div>
+      <div class="brand editable" contenteditable="true">版本迭代管理系统4 · 原型</div>
       <div class="top-actions">
         <button class="btn-ghost" onclick="addTask()">新增卡片</button>
         <button class="btn-ghost" onclick="resetDemo()">恢复默认</button>
@@ -333,9 +333,13 @@
     }
 
     function loadState() {
+      const serverBrand = document.querySelector('.brand')?.textContent;
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         document.getElementById('app').innerHTML = saved;
+        if (serverBrand && document.querySelector('.brand')) {
+          document.querySelector('.brand').textContent = serverBrand;
+        }
         ensurePersistentControls();
         setGitHubStatus('✏️ 已恢复本地未同步修改', 'warning');
       } else {
