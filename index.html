@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>可编辑原型 Demo</title>
+  <title>版本迭代管理系统2</title>
   <style>
     :root {
       --bg: #f4f7fb;
@@ -26,11 +26,12 @@
     }
     .app { min-height: 100vh; }
     .topbar {
-      height: 64px;
+      min-height: 64px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      gap: 16px;
+      padding: 10px 24px;
       background: #111827;
       color: #fff;
       position: sticky;
@@ -41,8 +42,9 @@
       font-size: 18px;
       font-weight: 700;
       letter-spacing: .5px;
+      white-space: nowrap;
     }
-    .top-actions { display: flex; gap: 10px; }
+    .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     button {
       border: 0;
       border-radius: 8px;
@@ -52,7 +54,9 @@
       transition: .2s ease;
     }
     button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .55; cursor: wait; transform: none; }
     .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success); color: white; }
     .btn-ghost { background: rgba(255,255,255,.12); color: white; }
     .layout {
       display: grid;
@@ -166,9 +170,7 @@
       font-size: 13px;
       line-height: 1.7;
     }
-    .editable[contenteditable="true"] {
-      border-radius: 6px;
-    }
+    .editable[contenteditable="true"] { border-radius: 6px; }
     .editable[contenteditable="true"]:hover {
       background: #fff7ed;
       box-shadow: 0 0 0 2px #fed7aa;
@@ -188,27 +190,35 @@
       font-size: 13px;
       box-shadow: var(--shadow);
       z-index: 30;
+      max-width: calc(100vw - 36px);
     }
+    .editing-badge.success { background: #166534; }
+    .editing-badge.warning { background: #92400e; }
+    .editing-badge.error { background: #991b1b; }
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
       .sidebar { display: none; }
       .stats { grid-template-columns: repeat(2, 1fr); }
       .main { padding: 18px; }
+      .topbar { align-items: flex-start; }
     }
     @media (max-width: 560px) {
       .stats { grid-template-columns: 1fr; }
       .task { grid-template-columns: 1fr; }
-      .topbar { padding: 0 12px; }
+      .topbar { padding: 10px 12px; flex-direction: column; }
+      .top-actions { justify-content: flex-start; }
     }
   </style>
 </head>
 <body>
   <div class="app" id="app">
     <header class="topbar">
-      <div class="brand editable" contenteditable="true">版本迭代管理系统 · 原型</div>
+      <div class="brand editable" contenteditable="true">版本迭代管理系统2 · 原型</div>
       <div class="top-actions">
         <button class="btn-ghost" onclick="addTask()">新增卡片</button>
         <button class="btn-ghost" onclick="resetDemo()">恢复默认</button>
+        <button class="btn-success" id="githubSaveBtn" onclick="saveToGitHub()">保存到 GitHub</button>
+        <button class="btn-ghost" onclick="clearGitHubToken()">清除 Token</button>
         <button class="btn-primary" onclick="exportHtml()">导出 HTML</button>
       </div>
     </header>
@@ -227,7 +237,7 @@
         <div class="page-header">
           <div>
             <h1 class="page-title editable" contenteditable="true">4.1.0 版本迭代</h1>
-            <p class="page-desc editable" contenteditable="true">这是一个可以直接点击文字修改的原型页面，改完会自动保存在当前浏览器。</p>
+            <p class="page-desc editable" contenteditable="true">这是一个可以直接点击文字修改的原型页面，修改会先自动保存在浏览器，完成后可一键同步到 GitHub。</p>
           </div>
           <button class="btn-primary" onclick="addTask()">+ 新增需求</button>
         </div>
@@ -287,36 +297,51 @@
           </div>
 
           <div class="hint">
-            使用方法：直接点击页面中的文字即可修改；点击“新增卡片”增加内容；点击“删除”移除卡片。
-            所有修改会自动保存在当前浏览器；点击“导出 HTML”可以下载当前修改后的版本。
+            使用方法：直接点击页面中的文字即可修改；点击“新增卡片”增加内容；点击“删除”移除卡片。修改会先保存在当前浏览器；确认后点右上角“保存到 GitHub”，即可把当前原型同步到仓库。Token 只保存在本次浏览器会话中，不会写入 HTML。
           </div>
         </section>
       </main>
     </div>
   </div>
 
-  <div class="editing-badge">✏️ 原型编辑模式 · 自动保存</div>
+  <div class="editing-badge" id="githubStatus">✏️ 原型编辑模式 · 正在加载</div>
 
   <script>
     const STORAGE_KEY = 'editable-prototype-demo-v1';
+    const TOKEN_KEY = 'prototype-github-token';
+    const GITHUB_OWNER = 'liqitao';
+    const GITHUB_REPO = 'ceshi';
+    const GITHUB_PATH = 'index.html';
+    const GITHUB_BRANCH = 'main';
     const defaultHtml = document.getElementById('app').innerHTML;
+
+    function setGitHubStatus(message, type = '') {
+      const el = document.getElementById('githubStatus');
+      if (!el) return;
+      el.className = 'editing-badge' + (type ? ' ' + type : '');
+      el.textContent = message;
+    }
 
     function saveState() {
       localStorage.setItem(STORAGE_KEY, document.getElementById('app').innerHTML);
+      setGitHubStatus('✏️ 有未同步修改 · 已保存到当前浏览器', 'warning');
     }
 
     function loadState() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         document.getElementById('app').innerHTML = saved;
+        setGitHubStatus('✏️ 已恢复本地未同步修改', 'warning');
+      } else {
+        setGitHubStatus('✓ 已加载 GitHub 最新版本', 'success');
       }
       bindAutoSave();
     }
 
     function bindAutoSave() {
       document.querySelectorAll('.editable').forEach(el => {
-        el.addEventListener('input', saveState);
-        el.addEventListener('blur', saveState);
+        el.oninput = saveState;
+        el.onblur = saveState;
       });
     }
 
@@ -343,16 +368,109 @@
     }
 
     function resetDemo() {
-      if (!confirm('确定恢复默认内容吗？当前浏览器里的修改会被清空。')) return;
+      if (!confirm('确定恢复 GitHub 当前版本的默认内容吗？当前浏览器里的未同步修改会被清空。')) return;
       localStorage.removeItem(STORAGE_KEY);
       document.getElementById('app').innerHTML = defaultHtml;
       bindAutoSave();
+      setGitHubStatus('✓ 已恢复 GitHub 当前版本', 'success');
+    }
+
+    function getGitHubToken() {
+      let token = sessionStorage.getItem(TOKEN_KEY);
+      if (!token) {
+        token = prompt('请输入你刚创建的 GitHub Fine-grained Token。\n\nToken 仅保存在当前浏览器会话的 sessionStorage 中，关闭浏览器后会自动清除，不会写入 GitHub 或 HTML。');
+        if (!token) return null;
+        token = token.trim();
+        sessionStorage.setItem(TOKEN_KEY, token);
+      }
+      return token;
+    }
+
+    function clearGitHubToken() {
+      sessionStorage.removeItem(TOKEN_KEY);
+      setGitHubStatus('🔒 GitHub Token 已从当前浏览器会话清除', 'success');
+      alert('Token 已清除。下次保存到 GitHub 时会重新要求输入。');
+    }
+
+    function utf8ToBase64(text) {
+      const bytes = new TextEncoder().encode(text);
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      return btoa(binary);
+    }
+
+    function buildCurrentHtml() {
+      const clone = document.documentElement.cloneNode(true);
+      const badge = clone.querySelector('#githubStatus');
+      if (badge) {
+        badge.className = 'editing-badge';
+        badge.textContent = '✏️ 原型编辑模式 · 正在加载';
+      }
+      return '<!DOCTYPE html>\n' + clone.outerHTML;
+    }
+
+    async function saveToGitHub() {
+      const token = getGitHubToken();
+      if (!token) return;
+
+      const btn = document.getElementById('githubSaveBtn');
+      if (btn) btn.disabled = true;
+      setGitHubStatus('⏳ 正在保存到 GitHub…');
+
+      const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
+      const headers = {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json'
+      };
+
+      try {
+        const metaResponse = await fetch(`${apiUrl}?ref=${encodeURIComponent(GITHUB_BRANCH)}`, { headers });
+        if (!metaResponse.ok) {
+          const detail = await metaResponse.text();
+          throw new Error(`读取 GitHub 文件失败（${metaResponse.status}）：${detail}`);
+        }
+        const meta = await metaResponse.json();
+        const html = buildCurrentHtml();
+        const now = new Date();
+        const commitMessage = `在线原型保存 ${now.toLocaleString('zh-CN', { hour12: false })}`;
+
+        const updateResponse = await fetch(apiUrl, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            message: commitMessage,
+            content: utf8ToBase64(html),
+            sha: meta.sha,
+            branch: GITHUB_BRANCH
+          })
+        });
+
+        if (!updateResponse.ok) {
+          const detail = await updateResponse.text();
+          throw new Error(`保存 GitHub 失败（${updateResponse.status}）：${detail}`);
+        }
+
+        localStorage.removeItem(STORAGE_KEY);
+        setGitHubStatus('✓ 已保存到 GitHub · Pages 稍后自动更新', 'success');
+        alert('保存成功！\n\nGitHub 已提交最新原型，GitHub Pages 通常几十秒后更新。以后你让我修改时，我就可以直接读取仓库里的最新版本。');
+      } catch (error) {
+        console.error(error);
+        setGitHubStatus('✕ GitHub 保存失败 · 请检查 Token 权限', 'error');
+        alert(error.message + '\n\n请确认 Token 只选择了 ceshi 仓库，并且 Contents 权限为 Read and write。');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     function exportHtml() {
       saveState();
       const clone = document.documentElement.cloneNode(true);
-      const exported = '<!DOCTYPE html>\\n' + clone.outerHTML;
+      const exported = '<!DOCTYPE html>\n' + clone.outerHTML;
       const blob = new Blob([exported], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
